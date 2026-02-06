@@ -202,16 +202,22 @@ export const siteConfig = {
 
   // SEO
   seo: {
-    title: "Aravind S Narayan - Full Stack Developer",
+    title: "Aravind S Narayan - Senior DevOps Engineer",
     description:
-      "Portfolio of Aravind S Narayan - Full Stack Developer specializing in React, Node.js, and cloud technologies.",
+      "Portfolio of Aravind S Narayan - Senior DevOps Engineer specializing in CI/CD, Kubernetes, AWS, and cloud infrastructure automation.",
     keywords: [
-      "Full Stack Developer",
-      "React Developer",
-      "Node.js Developer",
-      "Software Engineer",
-      "Web Developer",
+      "DevOps Engineer",
+      "Cloud Engineer", 
+      "Kubernetes Expert",
+      "CI/CD Specialist",
+      "AWS Certified",
+      "Infrastructure as Code",
+      "Terraform",
+      "Docker",
     ],
+    siteUrl: "https://aravindsnarayan.com",
+    ogImage: "/og-image.png",
+    twitterHandle: "@aravindsnarayan",
   },
 };
 

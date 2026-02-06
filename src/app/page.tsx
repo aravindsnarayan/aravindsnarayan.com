@@ -2,10 +2,11 @@
 
 import { siteConfig } from "@/data/siteConfig";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
 import { Noto_Serif_JP, Karla } from "next/font/google";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Github, Linkedin, Mail, ArrowUpRight, ArrowDown, Menu, X, ArrowUp, Sun, Moon, Cloud, Container, FileCode2, GitBranch, BarChart3, Shield } from "lucide-react";
+import { Github, Linkedin, Mail, ArrowUpRight, ArrowDown, Menu, X, ArrowUp, Sun, Moon, Cloud, Container, FileCode2, GitBranch, BarChart3, Shield, Command, Download, Search } from "lucide-react";
 
 const notoSerif = Noto_Serif_JP({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
 const karla = Karla({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
@@ -215,6 +216,285 @@ function PageLoader({ onComplete }: { onComplete: () => void }) {
   );
 }
 
+// Command Palette Component
+function CommandPalette({ 
+  isOpen, 
+  onClose, 
+  isDark,
+  scrollToSection 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  isDark: boolean;
+  scrollToSection: (href: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commands = [
+    { id: "home", label: "Go to Home", shortcut: "1", action: () => { scrollToSection("#home"); onClose(); } },
+    { id: "about", label: "Go to About", shortcut: "2", action: () => { scrollToSection("#about"); onClose(); } },
+    { id: "skills", label: "Go to Skills", shortcut: "3", action: () => { scrollToSection("#skills"); onClose(); } },
+    { id: "experience", label: "Go to Experience", shortcut: "4", action: () => { scrollToSection("#experience"); onClose(); } },
+    { id: "work", label: "Go to Projects", shortcut: "5", action: () => { scrollToSection("#work"); onClose(); } },
+    { id: "contact", label: "Go to Contact", shortcut: "6", action: () => { scrollToSection("#contact"); onClose(); } },
+    { id: "resume", label: "Download Resume", shortcut: "R", action: () => { 
+      trackResumeDownload();
+      window.open(siteConfig.resumeUrl, '_blank'); 
+      onClose(); 
+    }},
+    { id: "github", label: "Open GitHub", shortcut: "G", action: () => { window.open(siteConfig.socials.github, '_blank'); onClose(); } },
+    { id: "linkedin", label: "Open LinkedIn", shortcut: "L", action: () => { window.open(siteConfig.socials.linkedin, '_blank'); onClose(); } },
+    { id: "email", label: "Send Email", shortcut: "E", action: () => { window.location.href = `mailto:${siteConfig.socials.email}`; onClose(); } },
+  ];
+
+  const filteredCommands = commands.filter(cmd => 
+    cmd.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[10001] flex items-start justify-center pt-[20vh]"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: -20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -20 }}
+        transition={{ duration: 0.2 }}
+        className={`relative w-full max-w-lg mx-4 rounded-xl shadow-2xl overflow-hidden ${
+          isDark ? 'bg-stone-900 border border-stone-800' : 'bg-white border border-stone-200'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`flex items-center gap-3 px-4 py-3 border-b ${isDark ? 'border-stone-800' : 'border-stone-200'}`}>
+          <Search className={`w-5 h-5 ${isDark ? 'text-stone-500' : 'text-stone-400'}`} />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Type a command or search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`flex-1 bg-transparent outline-none text-sm ${
+              isDark ? 'text-stone-200 placeholder:text-stone-500' : 'text-stone-800 placeholder:text-stone-400'
+            }`}
+          />
+          <kbd className={`px-2 py-1 text-xs rounded ${isDark ? 'bg-stone-800 text-stone-400' : 'bg-stone-100 text-stone-500'}`}>
+            ESC
+          </kbd>
+        </div>
+        
+        <div className="max-h-80 overflow-y-auto p-2">
+          {filteredCommands.length === 0 ? (
+            <p className={`text-center py-8 text-sm ${isDark ? 'text-stone-500' : 'text-stone-400'}`}>
+              No commands found
+            </p>
+          ) : (
+            filteredCommands.map((cmd) => (
+              <button
+                key={cmd.id}
+                onClick={cmd.action}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  isDark 
+                    ? 'hover:bg-stone-800 text-stone-300' 
+                    : 'hover:bg-stone-100 text-stone-700'
+                }`}
+              >
+                <span className="text-sm">{cmd.label}</span>
+                <kbd className={`px-2 py-1 text-xs rounded ${isDark ? 'bg-stone-800 text-stone-500' : 'bg-stone-100 text-stone-500'}`}>
+                  {cmd.shortcut}
+                </kbd>
+              </button>
+            ))
+          )}
+        </div>
+        
+        <div className={`flex items-center justify-between px-4 py-2 text-xs border-t ${
+          isDark ? 'border-stone-800 text-stone-500' : 'border-stone-200 text-stone-400'
+        }`}>
+          <span>Navigate with ↑↓ • Select with Enter</span>
+          <span className="flex items-center gap-1">
+            <Command className="w-3 h-3" /> K to open
+          </span>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Loading Skeleton Component
+function Skeleton({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse bg-stone-300/30 rounded ${className}`} />
+  );
+}
+
+// Project Image Preview Component
+function ProjectCard({ 
+  project, 
+  index, 
+  isDarkMode, 
+  colors 
+}: { 
+  project: typeof siteConfig.projects[0]; 
+  index: number;
+  isDarkMode: boolean;
+  colors: { textMuted: string; cardBg: string; border: string };
+}) {
+  const [isHovering, setIsHovering] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
+  return (
+    <FadeIn delay={index * 0.15}>
+      <article 
+        className="group relative"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        {/* Hover Image Preview */}
+        <AnimatePresence>
+          {isHovering && project.image && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="absolute -top-4 right-0 z-20 hidden lg:block"
+            >
+              <div className={`relative w-64 h-40 rounded-lg overflow-hidden shadow-2xl border ${colors.border}`}>
+                {!imageLoaded && <Skeleton className="absolute inset-0" />}
+                <Image
+                  src={project.image}
+                  alt={project.title}
+                  fill
+                  className={`object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setImageLoaded(true)}
+                  sizes="256px"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <div className="flex items-start justify-between mb-4">
+          <span className={`${notoSerif.className} text-5xl font-light ${isDarkMode ? 'text-stone-700' : 'text-stone-300'} group-hover:text-amber-600/30 transition-colors`}>
+            {(index + 1).toString().padStart(2, '0')}
+          </span>
+        </div>
+        
+        <h3 className={`${notoSerif.className} text-2xl md:text-3xl font-light mb-4 group-hover:text-amber-600 transition-colors`}>
+          {project.title}
+        </h3>
+        
+        <p className={`${colors.textMuted} leading-relaxed mb-6 max-w-xl`}>
+          {project.description}
+        </p>
+        
+        <div className="flex flex-wrap gap-2 mb-8">
+          {project.tags.map((tag) => (
+            <span 
+              key={tag} 
+              className={`text-xs ${colors.textMuted} ${colors.cardBg} border ${colors.border} px-3 py-1.5 rounded`}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        
+        <div className="flex items-center gap-6">
+          {project.demo && (
+            <MagneticButton>
+              <a 
+                href={project.demo} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-2 text-sm ${isDarkMode ? 'text-stone-300' : 'text-stone-700'} hover:text-amber-600 transition-colors group/link`}
+              >
+                <span className={`border-b ${colors.border} group-hover/link:border-amber-600 pb-0.5 transition-colors`}>
+                  View Project
+                </span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </a>
+            </MagneticButton>
+          )}
+          {project.github && (
+            <a 
+              href={project.github} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={`text-sm ${isDarkMode ? 'text-stone-500' : 'text-stone-400'} hover:text-amber-600 transition-colors`}
+            >
+              Source Code
+            </a>
+          )}
+        </div>
+      </article>
+    </FadeIn>
+  );
+}
+
+// Resume download tracking
+function trackResumeDownload() {
+  // Log download event (replace with actual analytics like Umami, Plausible, or GA4)
+  console.log('[Analytics] Resume downloaded at', new Date().toISOString());
+  
+  // If using window.gtag (Google Analytics 4):
+  if (typeof window !== 'undefined' && (window as { gtag?: Function }).gtag) {
+    (window as { gtag?: Function }).gtag?.('event', 'download_resume', {
+      event_category: 'engagement',
+      event_label: 'Resume PDF',
+    });
+  }
+  
+  // If using Umami:
+  if (typeof window !== 'undefined' && (window as { umami?: { track: Function } }).umami) {
+    (window as { umami?: { track: Function } }).umami?.track('download_resume');
+  }
+}
+
+// Parallax Section Wrapper
+function ParallaxSection({ 
+  children, 
+  className = "",
+  offset = 50 
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  offset?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"]
+  });
+  
+  const y = useTransform(scrollYProgress, [0, 1], [offset, -offset]);
+  
+  return (
+    <motion.div ref={ref} style={{ y }} className={className}>
+      {children}
+    </motion.div>
+  );
+}
+
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -222,6 +502,8 @@ export default function Home() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [easterEggActive, setEasterEggActive] = useState(false);
   
   const { scrollYProgress } = useScroll();
   const { scrollYProgress: heroScrollProgress } = useScroll({
@@ -233,9 +515,8 @@ export default function Home() {
   const heroY = useTransform(heroScrollProgress, [0, 0.5], [0, 100]);
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
 
-  // Smooth scroll handler
-  const scrollToSection = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
+  // Scroll to section helper (for both click events and keyboard/command palette)
+  const scrollToSectionById = useCallback((href: string) => {
     const targetId = href.replace('#', '');
     const element = document.getElementById(targetId);
     if (element) {
@@ -243,6 +524,96 @@ export default function Home() {
     }
     setIsMenuOpen(false);
   }, []);
+
+  // Smooth scroll handler for click events
+  const scrollToSection = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    scrollToSectionById(href);
+  }, [scrollToSectionById]);
+
+  // Konami Code Easter Egg: ↑↑↓↓←→←→BA
+  useEffect(() => {
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+    let konamiIndex = 0;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === konamiCode[konamiIndex]) {
+        konamiIndex++;
+        if (konamiIndex === konamiCode.length) {
+          setEasterEggActive(true);
+          konamiIndex = 0;
+          // Reset after 5 seconds
+          setTimeout(() => setEasterEggActive(false), 5000);
+        }
+      } else {
+        konamiIndex = 0;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Keyboard Navigation: Cmd+K for command palette, 1-6 for sections
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command Palette: Cmd+K or Ctrl+K
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+        return;
+      }
+
+      // Close command palette with Escape
+      if (e.key === 'Escape') {
+        setIsCommandPaletteOpen(false);
+        return;
+      }
+
+      // Don't trigger number navigation if command palette is open or user is typing
+      if (isCommandPaletteOpen) return;
+      const activeElement = document.activeElement;
+      if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') return;
+
+      // Number key navigation
+      const sectionMap: { [key: string]: string } = {
+        '1': 'home',
+        '2': 'about',
+        '3': 'skills',
+        '4': 'experience',
+        '5': 'work',
+        '6': 'contact',
+      };
+
+      if (sectionMap[e.key]) {
+        const targetId = sectionMap[e.key];
+        const element = targetId === 'home' 
+          ? document.querySelector('section') 
+          : document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      // Quick actions: G for GitHub, L for LinkedIn, R for Resume, E for Email
+      if (e.key.toLowerCase() === 'g' && !e.metaKey && !e.ctrlKey) {
+        window.open(siteConfig.socials.github, '_blank');
+      }
+      if (e.key.toLowerCase() === 'l' && !e.metaKey && !e.ctrlKey) {
+        window.open(siteConfig.socials.linkedin, '_blank');
+      }
+      if (e.key.toLowerCase() === 'r' && !e.metaKey && !e.ctrlKey) {
+        trackResumeDownload();
+        window.open(siteConfig.resumeUrl, '_blank');
+      }
+      if (e.key.toLowerCase() === 'e' && !e.metaKey && !e.ctrlKey) {
+        window.location.href = `mailto:${siteConfig.socials.email}`;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCommandPaletteOpen]);
 
   // Active section detection
   useEffect(() => {
@@ -315,6 +686,76 @@ export default function Home() {
       {/* Page Loader */}
       <AnimatePresence>
         {isLoading && <PageLoader onComplete={() => setIsLoading(false)} />}
+      </AnimatePresence>
+
+      {/* Command Palette */}
+      <AnimatePresence>
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            isDark={isDarkMode}
+            scrollToSection={scrollToSectionById}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Easter Egg: Konami Code Celebration */}
+      <AnimatePresence>
+        {easterEggActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              transition={{ type: "spring", damping: 10 }}
+              className="text-center"
+            >
+              <div className="text-8xl mb-4">🎉</div>
+              <p className={`${notoSerif.className} text-2xl text-amber-600`}>
+                You found the secret!
+              </p>
+              <p className="text-sm text-stone-500 mt-2">
+                Nice work, fellow developer!
+              </p>
+            </motion.div>
+            {/* Confetti effect */}
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ 
+                  opacity: 1, 
+                  x: 0, 
+                  y: 0 
+                }}
+                animate={{ 
+                  opacity: 0, 
+                  x: (Math.random() - 0.5) * 500, 
+                  y: Math.random() * 500 - 250,
+                  rotate: Math.random() * 720 
+                }}
+                transition={{ duration: 2, ease: "easeOut" }}
+                className="absolute"
+                style={{
+                  left: '50%',
+                  top: '50%',
+                }}
+              >
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ 
+                    backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6'][i % 5] 
+                  }}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Custom Cursor */}
@@ -495,7 +936,7 @@ export default function Home() {
         </AnimatePresence>
 
         {/* Hero */}
-        <section ref={heroRef} className="min-h-0 md:min-h-[85vh] flex items-start md:items-center relative overflow-hidden pt-28 md:pt-32 pb-8 md:pb-0">
+        <section id="home" ref={heroRef} className="min-h-0 md:min-h-[85vh] flex items-start md:items-center relative overflow-hidden pt-28 md:pt-32 pb-8 md:pb-0">
           <motion.div 
             style={{ opacity: heroOpacity, y: heroY }}
             className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 w-full relative z-10"
@@ -658,7 +1099,7 @@ export default function Home() {
         </section>
 
         {/* Skills */}
-        <section className={`py-10 md:py-24 relative z-10 ${colors.sectionBg} transition-colors duration-500`}>
+        <section id="skills" className={`py-10 md:py-24 relative z-10 ${colors.sectionBg} transition-colors duration-500`}>
           <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12">
             <div className="grid lg:grid-cols-12 gap-8 lg:gap-24">
               <div className="lg:col-span-4">
@@ -708,7 +1149,7 @@ export default function Home() {
         </section>
 
         {/* Experience */}
-        <section className="py-10 md:py-24 relative z-10">
+        <section id="experience" className="py-10 md:py-24 relative z-10">
           <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12">
             <div className="grid lg:grid-cols-12 gap-8 lg:gap-24">
               <div className="lg:col-span-4">
@@ -777,62 +1218,13 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <div className="space-y-20">
                   {siteConfig.projects.map((project, i) => (
-                    <FadeIn key={project.title} delay={i * 0.15}>
-                      <article className="group">
-                        <div className="flex items-start justify-between mb-4">
-                          <span className={`${notoSerif.className} text-5xl font-light ${isDarkMode ? 'text-stone-700' : 'text-stone-300'} group-hover:text-amber-600/30 transition-colors`}>
-                            {(i + 1).toString().padStart(2, '0')}
-                          </span>
-                        </div>
-                        
-                        <h3 className={`${notoSerif.className} text-2xl md:text-3xl font-light mb-4 group-hover:text-amber-600 transition-colors`}>
-                          {project.title}
-                        </h3>
-                        
-                        <p className={`${colors.textMuted} leading-relaxed mb-6 max-w-xl`}>
-                          {project.description}
-                        </p>
-                        
-                        <div className="flex flex-wrap gap-2 mb-8">
-                          {project.tags.map((tag) => (
-                            <span 
-                              key={tag} 
-                              className={`text-xs ${colors.textMuted} ${colors.cardBg} border ${colors.border} px-3 py-1.5 rounded`}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                        
-                        <div className="flex items-center gap-6">
-                          {project.demo && (
-                            <MagneticButton>
-                              <a 
-                                href={project.demo} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-2 text-sm ${isDarkMode ? 'text-stone-300' : 'text-stone-700'} hover:text-amber-600 transition-colors group/link`}
-                              >
-                                <span className={`border-b ${colors.border} group-hover/link:border-amber-600 pb-0.5 transition-colors`}>
-                                  View Project
-                                </span>
-                                <ArrowUpRight className="w-3.5 h-3.5" />
-                              </a>
-                            </MagneticButton>
-                          )}
-                          {project.github && (
-                            <a 
-                              href={project.github} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className={`text-sm ${colors.textSubtle} hover:${colors.text} transition-colors`}
-                            >
-                              Source Code
-                            </a>
-                          )}
-                        </div>
-                      </article>
-                    </FadeIn>
+                    <ProjectCard
+                      key={project.title}
+                      project={project}
+                      index={i}
+                      isDarkMode={isDarkMode}
+                      colors={colors}
+                    />
                   ))}
                 </div>
               </div>
@@ -899,13 +1291,28 @@ export default function Home() {
         {/* Footer */}
         <footer className="py-8 md:py-12 relative z-10">
           <Divider isDark={isDarkMode} />
-          <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 pt-8 md:pt-12 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
-            <p className={`text-xs md:text-sm ${colors.textSubtle}`}>
-              {siteConfig.footer.copyright}
-            </p>
-            <p className={`text-xs md:text-sm ${colors.textSubtle}`}>
-              {siteConfig.footer.builtWith}
-            </p>
+          <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 pt-8 md:pt-12">
+            {/* Keyboard shortcuts hint - hidden on mobile */}
+            <div className={`hidden md:flex justify-center gap-6 mb-6 text-xs ${colors.textSubtle}`}>
+              <span className="flex items-center gap-1.5">
+                <kbd className={`px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-stone-800' : 'bg-stone-200'}`}>⌘</kbd>
+                <kbd className={`px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-stone-800' : 'bg-stone-200'}`}>K</kbd>
+                <span className="ml-1">Command palette</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <kbd className={`px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-stone-800' : 'bg-stone-200'}`}>1-6</kbd>
+                <span className="ml-1">Navigate sections</span>
+              </span>
+            </div>
+            
+            <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
+              <p className={`text-xs md:text-sm ${colors.textSubtle}`}>
+                {siteConfig.footer.copyright}
+              </p>
+              <p className={`text-xs md:text-sm ${colors.textSubtle}`}>
+                {siteConfig.footer.builtWith}
+              </p>
+            </div>
           </div>
         </footer>
 
