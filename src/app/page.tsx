@@ -226,53 +226,139 @@ function TextReveal({
   );
 }
 
-// Floating Zen particles - subtle, meditative floating dots
-function FloatingParticles({ isDark, count = 15 }: { isDark: boolean; count?: number }) {
+// Interactive Zen Floater - responds to scroll and cursor
+function ZenFloater({ isDark }: { isDark: boolean }) {
   const prefersReducedMotion = useReducedMotion();
-  const [particles, setParticles] = useState<Array<{
-    id: number;
-    x: number;
-    y: number;
-    size: number;
-    duration: number;
-    delay: number;
-  }>>([]);
-
+  const { scrollY } = useScroll();
+  const scrollProgress = useTransform(scrollY, [0, 3000], [0, 1]);
+  
+  // Smooth spring values for cursor following
+  const springConfig = { stiffness: 50, damping: 30 };
+  const mouseXSpring = useSpring(useMotionValue(0.5), springConfig);
+  const mouseYSpring = useSpring(useMotionValue(0.5), springConfig);
+  
   useEffect(() => {
-    // Generate particles on client side only
-    const newParticles = Array.from({ length: count }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 20 + 15,
-      delay: Math.random() * 5,
-    }));
-    setParticles(newParticles);
-  }, [count]);
+    if (prefersReducedMotion) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      mouseXSpring.set(x);
+      mouseYSpring.set(y);
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [prefersReducedMotion, mouseXSpring, mouseYSpring]);
 
-  if (prefersReducedMotion || particles.length === 0) return null;
+  if (prefersReducedMotion) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {particles.map((particle) => (
+      {/* Primary large zen circle - prominent amber glow */}
+      <motion.div
+        className={`absolute w-[700px] h-[700px] rounded-full ${
+          isDark ? 'bg-amber-500/20 blur-[100px]' : 'bg-amber-400/25 blur-[80px]'
+        }`}
+        style={{
+          left: '10%',
+          top: '5%',
+          x: useTransform(mouseXSpring, [0, 1], [-150, 150]),
+          y: useTransform(mouseYSpring, [0, 1], [-150, 150]),
+          scale: useTransform(scrollProgress, [0, 0.5, 1], [1, 1.3, 0.7]),
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.5 }}
+      />
+      
+      {/* Secondary circle - stone accent, bottom right */}
+      <motion.div
+        className={`absolute w-[600px] h-[600px] rounded-full ${
+          isDark ? 'bg-stone-400/15 blur-[100px]' : 'bg-stone-500/20 blur-[80px]'
+        }`}
+        style={{
+          right: '-10%',
+          bottom: '0%',
+          x: useTransform(mouseXSpring, [0, 1], [80, -80]),
+          y: useTransform(mouseYSpring, [0, 1], [80, -80]),
+          scale: useTransform(scrollProgress, [0, 0.5, 1], [0.8, 1.2, 1]),
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2 }}
+      />
+      
+      {/* Third accent circle - moves with scroll */}
+      <motion.div
+        className={`absolute w-[400px] h-[400px] rounded-full ${
+          isDark ? 'bg-amber-600/15 blur-[80px]' : 'bg-amber-500/18 blur-[60px]'
+        }`}
+        style={{
+          left: '50%',
+          top: '40%',
+          x: useTransform(scrollProgress, [0, 1], [0, -200]),
+          y: useTransform(scrollProgress, [0, 1], [0, -300]),
+          scale: useTransform(mouseXSpring, [0, 1], [0.9, 1.1]),
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2.5 }}
+      />
+      
+      {/* Ensō circles - visible ring outlines */}
+      {[...Array(4)].map((_, i) => (
         <motion.div
-          key={particle.id}
-          className={`absolute rounded-full ${isDark ? 'bg-amber-500/10' : 'bg-amber-600/8'}`}
+          key={i}
+          className={`absolute rounded-full ${
+            isDark 
+              ? 'border-2 border-amber-500/30' 
+              : 'border-2 border-amber-600/25'
+          }`}
           style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: particle.size,
-            height: particle.size,
+            width: 120 + i * 80,
+            height: 120 + i * 80,
+            left: `${20 + i * 15}%`,
+            top: `${25 + i * 10}%`,
+            x: useTransform(mouseXSpring, [0, 1], [-30 - i * 10, 30 + i * 10]),
+            y: useTransform(scrollProgress, [0, 1], [0, -150 - i * 40]),
+          }}
+          animate={{
+            scale: [1, 1.08, 1],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{
+            duration: 6 + i * 2,
+            delay: i * 0.3,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+      
+      {/* Floating zen dots - larger and more visible */}
+      {[...Array(12)].map((_, i) => (
+        <motion.div
+          key={`dot-${i}`}
+          className={`absolute rounded-full ${
+            isDark ? 'bg-amber-400/40' : 'bg-amber-600/35'
+          }`}
+          style={{
+            width: 4 + (i % 3) * 2,
+            height: 4 + (i % 3) * 2,
+            left: `${5 + i * 8}%`,
+            top: `${10 + (i % 4) * 22}%`,
+            x: useTransform(mouseXSpring, [0, 1], [-15 - i * 2, 15 + i * 2]),
+            y: useTransform(mouseYSpring, [0, 1], [-15, 15]),
           }}
           animate={{
             y: [0, -30, 0],
-            x: [0, 10, -10, 0],
-            opacity: [0.3, 0.6, 0.3],
+            opacity: [0.5, 1, 0.5],
+            scale: [1, 1.2, 1],
           }}
           transition={{
-            duration: particle.duration,
-            delay: particle.delay,
+            duration: 5 + i * 0.5,
+            delay: i * 0.2,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -387,6 +473,224 @@ function AnimatedLink({
   );
 }
 
+// Animated gradient background - subtle moving gradients
+function AnimatedGradientBackground({ isDark }: { isDark: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  
+  if (prefersReducedMotion) return null;
+  
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <motion.div
+        className={`absolute -top-1/2 -left-1/2 w-full h-full rounded-full blur-3xl ${
+          isDark ? 'bg-amber-900/5' : 'bg-amber-200/20'
+        }`}
+        animate={{
+          x: [0, 100, 50, 0],
+          y: [0, 50, 100, 0],
+          scale: [1, 1.1, 0.9, 1],
+        }}
+        transition={{
+          duration: 25,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full blur-3xl ${
+          isDark ? 'bg-stone-800/10' : 'bg-stone-200/30'
+        }`}
+        animate={{
+          x: [0, -80, -40, 0],
+          y: [0, -60, -120, 0],
+          scale: [1, 0.9, 1.1, 1],
+        }}
+        transition={{
+          duration: 30,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </div>
+  );
+}
+
+// Cursor trail effect - particles following cursor
+function CursorTrail({ isDark }: { isDark: boolean }) {
+  const prefersReducedMotion = useReducedMotion();
+  const [trail, setTrail] = useState<Array<{ id: string; x: number; y: number }>>([]);
+  
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      // Use timestamp + random for guaranteed unique keys
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setTrail(prev => [
+        ...prev.slice(-8),
+        { id: uniqueId, x: e.clientX, y: e.clientY }
+      ]);
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [prefersReducedMotion]);
+
+  if (prefersReducedMotion) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[9998]">
+      {trail.map((point) => (
+        <motion.div
+          key={point.id}
+          initial={{ opacity: 0.6, scale: 1 }}
+          animate={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className={`absolute w-2 h-2 rounded-full ${isDark ? 'bg-amber-500/30' : 'bg-amber-600/20'}`}
+          style={{
+            left: point.x - 4,
+            top: point.y - 4,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Button with ripple effect - Material-design style
+function RippleButton({ 
+  children, 
+  className = "", 
+  onClick,
+  ...props 
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  onClick?: () => void;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setRipples(prev => [...prev, { id: Date.now(), x, y }]);
+      setTimeout(() => {
+        setRipples(prev => prev.slice(1));
+      }, 600);
+    }
+    onClick?.();
+  };
+  
+  return (
+    <button
+      ref={buttonRef}
+      className={`relative overflow-hidden ${className}`}
+      onClick={handleClick}
+      {...props}
+    >
+      {children}
+      {ripples.map(ripple => (
+        <motion.span
+          key={ripple.id}
+          initial={{ scale: 0, opacity: 0.5 }}
+          animate={{ scale: 4, opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="absolute w-8 h-8 rounded-full bg-amber-500/30 pointer-events-none"
+          style={{
+            left: ripple.x - 16,
+            top: ripple.y - 16,
+          }}
+        />
+      ))}
+    </button>
+  );
+}
+
+// Social icon with hover animation
+function AnimatedSocialIcon({ 
+  href, 
+  icon: Icon, 
+  label,
+  isDark 
+}: { 
+  href: string; 
+  icon: React.ComponentType<{ className?: string }>; 
+  label: string;
+  isDark: boolean;
+}) {
+  return (
+    <motion.a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className={`block p-2 rounded-full transition-colors ${
+        isDark ? 'text-stone-400 hover:text-amber-500 hover:bg-stone-800' : 'text-stone-500 hover:text-amber-600 hover:bg-stone-100'
+      }`}
+      whileHover={{ scale: 1.15, rotate: 5 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+    >
+      <Icon className="w-5 h-5" />
+    </motion.a>
+  );
+}
+
+// 3D Tilt skill tag
+function TiltSkillTag({ 
+  skill, 
+  isDark, 
+  delay = 0 
+}: { 
+  skill: string; 
+  isDark: boolean; 
+  delay?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-50, 50], [10, -10]);
+  const rotateY = useTransform(x, [-50, 50], [-10, 10]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (rect) {
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      x.set(e.clientX - centerX);
+      y.set(e.clientY - centerY);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.span
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: delay * 0.03, duration: 0.3 }}
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      whileHover={{ scale: 1.08, boxShadow: isDark ? "0 0 20px rgba(217, 119, 6, 0.15)" : "0 0 20px rgba(217, 119, 6, 0.1)" }}
+      className={`px-3 py-1.5 text-sm rounded border cursor-default transition-colors ${
+        isDark 
+          ? 'bg-stone-800 text-stone-400 border-stone-700 hover:border-amber-600/40 hover:text-amber-500' 
+          : 'bg-stone-50 text-stone-600 border-stone-200 hover:border-amber-600/40 hover:text-amber-600'
+      }`}
+    >
+      {skill}
+    </motion.span>
+  );
+}
+
 // Magnetic Button Component
 function MagneticButton({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -424,12 +728,10 @@ function MagneticButton({ children, className = "" }: { children: React.ReactNod
   );
 }
 
-// Custom Cursor Component - reduced smoothing for snappier feel
+// Custom Cursor Component - direct tracking, no smoothing
 function CustomCursor({ isDark }: { isDark: boolean }) {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
-  const springX = useSpring(cursorX, { stiffness: 1000, damping: 50 });
-  const springY = useSpring(cursorY, { stiffness: 1000, damping: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -475,8 +777,8 @@ function CustomCursor({ isDark }: { isDark: boolean }) {
       <motion.div
         className={`fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference hidden md:block`}
         style={{
-          x: springX,
-          y: springY,
+          x: cursorX,
+          y: cursorY,
         }}
       >
         <motion.div
@@ -492,8 +794,8 @@ function CustomCursor({ isDark }: { isDark: boolean }) {
       <motion.div
         className="fixed top-0 left-0 pointer-events-none z-[9998] hidden md:block"
         style={{
-          x: springX,
-          y: springY,
+          x: cursorX,
+          y: cursorY,
         }}
       >
         <motion.div
@@ -1003,13 +1305,18 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dark mode persistence - defaults to light theme
+  // Dark mode persistence - auto day/night cycle if no preference stored
   useEffect(() => {
     const stored = localStorage.getItem('darkMode');
-    if (stored) {
+    if (stored !== null) {
+      // User has a saved preference
       setIsDarkMode(stored === 'true');
+    } else {
+      // Auto theme based on time of day (6am-6pm = light, 6pm-6am = dark)
+      const hour = new Date().getHours();
+      const isNightTime = hour < 6 || hour >= 18;
+      setIsDarkMode(isNightTime);
     }
-    // Default is light theme (isDarkMode is already false)
   }, []);
 
   useEffect(() => {
@@ -1115,8 +1422,14 @@ export default function Home() {
       {/* Custom Cursor */}
       <CustomCursor isDark={isDarkMode} />
 
-      {/* Floating Zen Particles */}
-      <FloatingParticles isDark={isDarkMode} count={12} />
+      {/* Animated Gradient Background */}
+      <AnimatedGradientBackground isDark={isDarkMode} />
+
+      {/* Cursor Trail Effect */}
+      <CursorTrail isDark={isDarkMode} />
+
+      {/* Interactive Zen Floater */}
+      <ZenFloater isDark={isDarkMode} />
 
       {/* Scroll Progress Indicator */}
       <motion.div
@@ -1462,6 +1775,7 @@ export default function Home() {
                     </FadeIn>
                   ))}
                 </div>
+                
               </div>
             </div>
           </div>
@@ -1496,16 +1810,7 @@ export default function Home() {
                         
                         <div className="flex flex-wrap gap-2">
                           {cat.skills.map((skill, i) => (
-                            <motion.span 
-                              key={skill}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: i * 0.03, duration: 0.3 }}
-                              whileHover={{ scale: 1.05, y: -2 }}
-                              className={`px-3 py-1.5 ${colors.cardBg} ${colors.textMuted} text-sm rounded border ${colors.border} hover:border-amber-600/30 hover:text-amber-600 transition-colors cursor-default`}
-                            >
-                              {skill}
-                            </motion.span>
+                            <TiltSkillTag key={skill} skill={skill} isDark={isDarkMode} delay={i} />
                           ))}
                         </div>
                       </div>
@@ -1631,27 +1936,19 @@ export default function Home() {
               </FadeIn>
               
               <FadeIn staggerIndex={2} totalInGroup={3}>
-                <div className="flex justify-center gap-8 mt-12">
-                  <MagneticButton>
-                    <a 
-                      href={siteConfig.socials.github} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className={`${colors.textSubtle} hover:${colors.text} transition-colors`}
-                    >
-                      <Github className="w-5 h-5" />
-                    </a>
-                  </MagneticButton>
-                  <MagneticButton>
-                    <a 
-                      href={siteConfig.socials.linkedin} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className={`${colors.textSubtle} hover:${colors.text} transition-colors`}
-                    >
-                      <Linkedin className="w-5 h-5" />
-                    </a>
-                  </MagneticButton>
+                <div className="flex justify-center gap-6 mt-12">
+                  <AnimatedSocialIcon 
+                    href={siteConfig.socials.github} 
+                    icon={Github} 
+                    label="GitHub" 
+                    isDark={isDarkMode} 
+                  />
+                  <AnimatedSocialIcon 
+                    href={siteConfig.socials.linkedin} 
+                    icon={Linkedin} 
+                    label="LinkedIn" 
+                    isDark={isDarkMode} 
+                  />
                 </div>
               </FadeIn>
             </div>
