@@ -50,10 +50,23 @@ function FadeIn({
   const ref = useRef<HTMLDivElement>(null);
   const [isInView, setIsInView] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  
+  useEffect(() => {
+    // Check reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+  }, []);
   
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    
+    // Skip animation logic if reduced motion preferred
+    if (prefersReducedMotion) {
+      setIsInView(true);
+      return;
+    }
     
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -84,7 +97,12 @@ function FadeIn({
     
     observer.observe(element);
     return () => observer.disconnect();
-  }, [staggerIndex, hasAnimated, totalInGroup]);
+  }, [staggerIndex, hasAnimated, totalInGroup, prefersReducedMotion]);
+
+  // If reduced motion, render without animation
+  if (prefersReducedMotion) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <motion.div
@@ -131,6 +149,241 @@ function Divider({ className = "", isDark = false }: { className?: string; isDar
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
       className={`h-px origin-left ${isDark ? 'bg-stone-700' : 'bg-stone-300'} ${className}`}
     />
+  );
+}
+
+// Hook to detect reduced motion preference
+function useReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+  
+  return prefersReducedMotion;
+}
+
+// Text reveal animation - characters appear sequentially (Zen-like calm reveal)
+function TextReveal({ 
+  children, 
+  className = "",
+  delay = 0,
+  staggerChildren = 0.03
+}: { 
+  children: string; 
+  className?: string;
+  delay?: number;
+  staggerChildren?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [isInView, setIsInView] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { threshold: 0.5 }
+    );
+    
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  if (prefersReducedMotion) {
+    return <span className={className}>{children}</span>;
+  }
+
+  const words = children.split(' ');
+  
+  return (
+    <span ref={ref} className={className}>
+      {words.map((word, wordIndex) => (
+        <span key={wordIndex} className="inline-block overflow-hidden">
+          <motion.span
+            className="inline-block"
+            initial={{ y: '100%', opacity: 0 }}
+            animate={isInView ? { y: 0, opacity: 1 } : { y: '100%', opacity: 0 }}
+            transition={{
+              duration: 0.5,
+              delay: delay + wordIndex * staggerChildren * 3,
+              ease: [0.22, 1, 0.36, 1]
+            }}
+          >
+            {word}
+          </motion.span>
+          {wordIndex < words.length - 1 && <span>&nbsp;</span>}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// Floating Zen particles - subtle, meditative floating dots
+function FloatingParticles({ isDark, count = 15 }: { isDark: boolean; count?: number }) {
+  const prefersReducedMotion = useReducedMotion();
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    size: number;
+    duration: number;
+    delay: number;
+  }>>([]);
+
+  useEffect(() => {
+    // Generate particles on client side only
+    const newParticles = Array.from({ length: count }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 20 + 15,
+      delay: Math.random() * 5,
+    }));
+    setParticles(newParticles);
+  }, [count]);
+
+  if (prefersReducedMotion || particles.length === 0) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className={`absolute rounded-full ${isDark ? 'bg-amber-500/10' : 'bg-amber-600/8'}`}
+          style={{
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: particle.size,
+            height: particle.size,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 10, -10, 0],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: particle.duration,
+            delay: particle.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Animated counter for stats - counts up when in view
+function AnimatedCounter({ 
+  value, 
+  suffix = "",
+  className = "" 
+}: { 
+  value: string; 
+  suffix?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [displayValue, setDisplayValue] = useState("0");
+  const [isInView, setIsInView] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  
+  // Parse the value to extract number and any prefix/suffix
+  const numericMatch = value.match(/^([^\d]*)(\d+\.?\d*)(.*)$/);
+  const prefix = numericMatch?.[1] || "";
+  const numericValue = parseFloat(numericMatch?.[2] || "0");
+  const valueSuffix = numericMatch?.[3] || "";
+  const isInteger = !value.includes('.');
+  
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isInView) {
+          setIsInView(true);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isInView]);
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) {
+      setDisplayValue(value);
+      return;
+    }
+
+    let startTime: number;
+    const duration = 2000; // 2 seconds
+    
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = numericValue * eased;
+      
+      setDisplayValue(
+        prefix + 
+        (isInteger ? Math.floor(current).toString() : current.toFixed(1)) + 
+        valueSuffix
+      );
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [isInView, numericValue, prefix, valueSuffix, value, isInteger, prefersReducedMotion]);
+
+  return (
+    <span ref={ref} className={className}>
+      {displayValue}{suffix}
+    </span>
+  );
+}
+
+// Animated underline link - Zen-like calm slide animation
+function AnimatedLink({ 
+  href, 
+  children, 
+  className = "",
+  external = false 
+}: { 
+  href: string; 
+  children: React.ReactNode; 
+  className?: string;
+  external?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className={`group relative inline-block ${className}`}
+    >
+      {children}
+      <span className="absolute bottom-0 left-0 w-full h-px bg-current origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
+    </a>
   );
 }
 
@@ -258,10 +511,24 @@ function CustomCursor({ isDark }: { isDark: boolean }) {
 
 // Page Load Animation
 function PageLoader({ onComplete }: { onComplete: () => void }) {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    // If reduced motion, complete immediately
+    if (mediaQuery.matches) {
+      onComplete();
+      return;
+    }
+    
     const timer = setTimeout(onComplete, 2000);
     return () => clearTimeout(timer);
   }, [onComplete]);
+
+  // Skip loader entirely for reduced motion users
+  if (prefersReducedMotion) return null;
 
   return (
     <motion.div
@@ -286,6 +553,7 @@ function PageLoader({ onComplete }: { onComplete: () => void }) {
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.5, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           className="w-32 h-px bg-amber-700 mx-auto mt-8 origin-left"
+          style={{ willChange: 'transform' }}
         />
         
         <motion.p
@@ -847,9 +1115,12 @@ export default function Home() {
       {/* Custom Cursor */}
       <CustomCursor isDark={isDarkMode} />
 
+      {/* Floating Zen Particles */}
+      <FloatingParticles isDark={isDarkMode} count={12} />
+
       {/* Scroll Progress Indicator */}
       <motion.div
-        style={{ scaleX }}
+        style={{ scaleX, willChange: 'transform' }}
         className="fixed top-0 left-0 right-0 h-0.5 bg-amber-600 origin-left z-[100]"
       />
 
@@ -1143,7 +1414,7 @@ export default function Home() {
                 <FadeIn key={stat.label} staggerIndex={i} totalInGroup={siteConfig.stats.length}>
                   <div className="text-center md:text-left">
                     <div className={`${notoSerif.className} text-3xl md:text-5xl font-light mb-1 md:mb-2`}>
-                      {stat.value}
+                      <AnimatedCounter value={stat.value} />
                     </div>
                     <div className={`text-xs md:text-sm ${colors.textMuted} tracking-wide`}>
                       {stat.label}
@@ -1230,6 +1501,7 @@ export default function Home() {
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: i * 0.03, duration: 0.3 }}
+                              whileHover={{ scale: 1.05, y: -2 }}
                               className={`px-3 py-1.5 ${colors.cardBg} ${colors.textMuted} text-sm rounded border ${colors.border} hover:border-amber-600/30 hover:text-amber-600 transition-colors cursor-default`}
                             >
                               {skill}
