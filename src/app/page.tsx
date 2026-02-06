@@ -21,20 +21,35 @@ const skillIconMap: { [key: string]: React.ReactNode } = {
   "Security & Networking": <Shield className="w-5 h-5" />,
 };
 
+// Track scroll direction globally
+let lastScrollY = 0;
+let scrollDirection: 'up' | 'down' = 'down';
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('scroll', () => {
+    scrollDirection = window.scrollY > lastScrollY ? 'down' : 'up';
+    lastScrollY = window.scrollY;
+  }, { passive: true });
+}
+
 // Staggered fade in on scroll - ensures sequential animation order
+// Reverse order on scroll up (last element fades first)
 function FadeIn({ 
   children, 
   delay = 0, 
   className = "",
-  staggerIndex = 0 
+  staggerIndex = 0,
+  totalInGroup = 1
 }: { 
   children: React.ReactNode; 
   delay?: number; 
   className?: string;
   staggerIndex?: number;
+  totalInGroup?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [isInView, setIsInView] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
   
   useEffect(() => {
     const element = ref.current;
@@ -42,25 +57,34 @@ function FadeIn({
     
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // Add a small delay based on stagger index for sequential effect
         if (entry.isIntersecting) {
-          const staggerDelay = staggerIndex * 100; // 100ms between each element
-          setTimeout(() => setIsInView(true), staggerDelay);
-        } else {
-          // When scrolling up/element leaves viewport, reset with stagger
-          const staggerDelay = staggerIndex * 50;
+          // Entering viewport - stagger based on index (first to last)
+          const staggerDelay = staggerIndex * 80;
+          setTimeout(() => {
+            setIsInView(true);
+            setHasAnimated(true);
+          }, staggerDelay);
+        } else if (hasAnimated) {
+          // Leaving viewport - reverse stagger (last to first)
+          // When scrolling UP, bottom elements leave first so they should fade first
+          // When scrolling DOWN, top elements leave first so they should fade first
+          const reverseIndex = totalInGroup - 1 - staggerIndex;
+          const staggerDelay = scrollDirection === 'up' 
+            ? staggerIndex * 60  // When scrolling up, lower index items (at top) leave later
+            : reverseIndex * 60; // When scrolling down, higher index items (at bottom) leave later
+          
           setTimeout(() => setIsInView(false), staggerDelay);
         }
       },
       { 
-        threshold: 0.2,
-        rootMargin: "-50px 0px -50px 0px"
+        threshold: 0.15,
+        rootMargin: "-30px 0px -30px 0px"
       }
     );
     
     observer.observe(element);
     return () => observer.disconnect();
-  }, [staggerIndex]);
+  }, [staggerIndex, hasAnimated, totalInGroup]);
 
   return (
     <motion.div
@@ -68,7 +92,7 @@ function FadeIn({
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
       transition={{ 
-        duration: 0.6, 
+        duration: 0.5, 
         delay, 
         ease: [0.22, 1, 0.36, 1] 
       }}
@@ -411,12 +435,14 @@ function Skeleton({ className = "" }: { className?: string }) {
 // Project Image Preview Component
 function ProjectCard({ 
   project, 
-  index, 
+  index,
+  totalProjects,
   isDarkMode, 
   colors 
 }: { 
   project: typeof siteConfig.projects[0]; 
   index: number;
+  totalProjects: number;
   isDarkMode: boolean;
   colors: { textMuted: string; cardBg: string; border: string };
 }) {
@@ -424,7 +450,7 @@ function ProjectCard({
   const [imageLoaded, setImageLoaded] = useState(false);
   
   return (
-    <FadeIn staggerIndex={index}>
+    <FadeIn staggerIndex={index} totalInGroup={totalProjects}>
       <article 
         className="group relative"
         onMouseEnter={() => setIsHovering(true)}
@@ -1114,7 +1140,7 @@ export default function Home() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
               {siteConfig.stats.map((stat, i) => (
-                <FadeIn key={stat.label} staggerIndex={i}>
+                <FadeIn key={stat.label} staggerIndex={i} totalInGroup={siteConfig.stats.length}>
                   <div className="text-center md:text-left">
                     <div className={`${notoSerif.className} text-3xl md:text-5xl font-light mb-1 md:mb-2`}>
                       {stat.value}
@@ -1145,7 +1171,7 @@ export default function Home() {
               </div>
               
               <div className="lg:col-span-8">
-                <FadeIn staggerIndex={1}>
+                <FadeIn staggerIndex={1} totalInGroup={6}>
                   <p className={`${notoSerif.className} text-xl md:text-3xl font-light leading-relaxed ${isDarkMode ? 'text-stone-300' : 'text-stone-700'} mb-8 md:mb-12`}>
                     {siteConfig.tagline}
                   </p>
@@ -1153,7 +1179,7 @@ export default function Home() {
                 
                 <div className="grid sm:grid-cols-2 gap-6 md:gap-10">
                   {siteConfig.highlights.slice(0, 4).map((h, i) => (
-                    <FadeIn key={h.title} staggerIndex={i + 2}>
+                    <FadeIn key={h.title} staggerIndex={i + 2} totalInGroup={6}>
                       <div className="group">
                         <h3 className={`text-base font-medium mb-2 group-hover:text-amber-600 transition-colors`}>
                           {h.title}
@@ -1186,7 +1212,7 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <div className="space-y-12">
                   {siteConfig.skillCategories.map((cat, catIndex) => (
-                    <FadeIn key={cat.category} staggerIndex={catIndex}>
+                    <FadeIn key={cat.category} staggerIndex={catIndex} totalInGroup={siteConfig.skillCategories.length}>
                       <div className="group">
                         <div className="flex items-center gap-3 mb-5">
                           <span className={`${isDarkMode ? 'text-amber-500' : 'text-amber-600'}`}>
@@ -1235,7 +1261,7 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <div className="space-y-12">
                   {siteConfig.experience.map((exp, i) => (
-                    <FadeIn key={exp.company} staggerIndex={i}>
+                    <FadeIn key={exp.company} staggerIndex={i} totalInGroup={siteConfig.experience.length}>
                       <div className={`relative pl-6 border-l-2 ${colors.border} hover:border-amber-600/50 transition-colors`}>
                         <div className="absolute -left-[5px] top-0 w-2 h-2 bg-amber-600 rounded-full" />
                         
@@ -1256,7 +1282,7 @@ export default function Home() {
                   
                   <div className="space-y-8">
                     {siteConfig.education.map((edu, i) => (
-                      <FadeIn key={edu.institution} staggerIndex={i}>
+                      <FadeIn key={edu.institution} staggerIndex={i} totalInGroup={siteConfig.education.length}>
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                           <div>
                             <h4 className="font-medium">{edu.degree}</h4>
@@ -1293,6 +1319,7 @@ export default function Home() {
                       key={project.title}
                       project={project}
                       index={i}
+                      totalProjects={siteConfig.projects.length}
                       isDarkMode={isDarkMode}
                       colors={colors}
                     />
@@ -1317,7 +1344,7 @@ export default function Home() {
                 </p>
               </FadeIn>
               
-              <FadeIn staggerIndex={1}>
+              <FadeIn staggerIndex={1} totalInGroup={3}>
                 <MagneticButton className="inline-block">
                   <a 
                     href={`mailto:${siteConfig.socials.email}`}
@@ -1331,7 +1358,7 @@ export default function Home() {
                 </MagneticButton>
               </FadeIn>
               
-              <FadeIn staggerIndex={2}>
+              <FadeIn staggerIndex={2} totalInGroup={3}>
                 <div className="flex justify-center gap-8 mt-12">
                   <MagneticButton>
                     <a 
