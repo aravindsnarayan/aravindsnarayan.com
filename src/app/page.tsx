@@ -21,14 +21,57 @@ const skillIconMap: { [key: string]: React.ReactNode } = {
   "Security & Networking": <Shield className="w-5 h-5" />,
 };
 
-// Fade in on scroll - triggers every time element enters viewport
-function FadeIn({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+// Staggered fade in on scroll - ensures sequential animation order
+function FadeIn({ 
+  children, 
+  delay = 0, 
+  className = "",
+  staggerIndex = 0 
+}: { 
+  children: React.ReactNode; 
+  delay?: number; 
+  className?: string;
+  staggerIndex?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+  
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Add a small delay based on stagger index for sequential effect
+        if (entry.isIntersecting) {
+          const staggerDelay = staggerIndex * 100; // 100ms between each element
+          setTimeout(() => setIsInView(true), staggerDelay);
+        } else {
+          // When scrolling up/element leaves viewport, reset with stagger
+          const staggerDelay = staggerIndex * 50;
+          setTimeout(() => setIsInView(false), staggerDelay);
+        }
+      },
+      { 
+        threshold: 0.2,
+        rootMargin: "-50px 0px -50px 0px"
+      }
+    );
+    
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [staggerIndex]);
+
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: false, margin: "-50px", amount: 0.3 }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+      transition={{ 
+        duration: 0.6, 
+        delay, 
+        ease: [0.22, 1, 0.36, 1] 
+      }}
       className={className}
     >
       {children}
@@ -38,11 +81,29 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 
 // Horizontal rule with animation - triggers every time
 function Divider({ className = "", isDark = false }: { className?: string; isDark?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+  
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.3 }
+    );
+    
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <motion.div
+      ref={ref}
       initial={{ scaleX: 0 }}
-      whileInView={{ scaleX: 1 }}
-      viewport={{ once: false, amount: 0.5 }}
+      animate={isInView ? { scaleX: 1 } : { scaleX: 0 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
       className={`h-px origin-left ${isDark ? 'bg-stone-700' : 'bg-stone-300'} ${className}`}
     />
@@ -363,7 +424,7 @@ function ProjectCard({
   const [imageLoaded, setImageLoaded] = useState(false);
   
   return (
-    <FadeIn delay={index * 0.15}>
+    <FadeIn staggerIndex={index}>
       <article 
         className="group relative"
         onMouseEnter={() => setIsHovering(true)}
@@ -377,7 +438,7 @@ function ProjectCard({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 10 }}
               transition={{ duration: 0.2 }}
-              className="absolute -top-4 right-0 z-20 hidden lg:block"
+              className="absolute top-20 right-0 z-20 hidden lg:block -translate-y-full"
             >
               <div className={`relative w-64 h-40 rounded-lg overflow-hidden shadow-2xl border ${colors.border}`}>
                 {!imageLoaded && <Skeleton className="absolute inset-0" />}
@@ -648,14 +709,13 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dark mode persistence
+  // Dark mode persistence - defaults to light theme
   useEffect(() => {
     const stored = localStorage.getItem('darkMode');
     if (stored) {
       setIsDarkMode(stored === 'true');
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setIsDarkMode(true);
     }
+    // Default is light theme (isDarkMode is already false)
   }, []);
 
   useEffect(() => {
@@ -936,7 +996,7 @@ export default function Home() {
         </AnimatePresence>
 
         {/* Hero */}
-        <section id="home" ref={heroRef} className="min-h-0 md:min-h-[85vh] flex items-start md:items-center relative overflow-hidden pt-28 md:pt-32 pb-8 md:pb-0">
+        <section id="home" ref={heroRef} className="min-h-0 md:min-h-[85vh] flex items-start md:items-center relative pt-28 md:pt-32 pb-16 md:pb-16">
           <motion.div 
             style={{ opacity: heroOpacity, y: heroY }}
             className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 w-full relative z-10"
@@ -996,7 +1056,19 @@ export default function Home() {
                       onClick={(e) => scrollToSection(e, '#work')}
                       className={`text-sm tracking-wide ${colors.textMuted} hover:${colors.text} transition-colors`}
                     >
-                      View work
+                      View works
+                    </a>
+                  </MagneticButton>
+                  <MagneticButton>
+                    <a 
+                      href={siteConfig.resumeUrl}
+                      onClick={() => trackResumeDownload()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`inline-flex items-center gap-2 text-sm tracking-wide ${colors.textMuted} hover:text-amber-600 transition-colors`}
+                    >
+                      <Download className="w-4 h-4" />
+                      Resume
                     </a>
                   </MagneticButton>
                 </motion.div>
@@ -1023,7 +1095,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: isLoading ? 0 : 1.5 }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2"
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2"
           >
             <span className={`text-xs ${colors.textSubtle} tracking-widest uppercase`}>Scroll</span>
             <motion.div
@@ -1042,7 +1114,7 @@ export default function Home() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
               {siteConfig.stats.map((stat, i) => (
-                <FadeIn key={stat.label} delay={i * 0.1}>
+                <FadeIn key={stat.label} staggerIndex={i}>
                   <div className="text-center md:text-left">
                     <div className={`${notoSerif.className} text-3xl md:text-5xl font-light mb-1 md:mb-2`}>
                       {stat.value}
@@ -1073,7 +1145,7 @@ export default function Home() {
               </div>
               
               <div className="lg:col-span-8">
-                <FadeIn delay={0.1}>
+                <FadeIn staggerIndex={1}>
                   <p className={`${notoSerif.className} text-xl md:text-3xl font-light leading-relaxed ${isDarkMode ? 'text-stone-300' : 'text-stone-700'} mb-8 md:mb-12`}>
                     {siteConfig.tagline}
                   </p>
@@ -1081,7 +1153,7 @@ export default function Home() {
                 
                 <div className="grid sm:grid-cols-2 gap-6 md:gap-10">
                   {siteConfig.highlights.slice(0, 4).map((h, i) => (
-                    <FadeIn key={h.title} delay={0.2 + i * 0.1}>
+                    <FadeIn key={h.title} staggerIndex={i + 2}>
                       <div className="group">
                         <h3 className={`text-base font-medium mb-2 group-hover:text-amber-600 transition-colors`}>
                           {h.title}
@@ -1114,7 +1186,7 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <div className="space-y-12">
                   {siteConfig.skillCategories.map((cat, catIndex) => (
-                    <FadeIn key={cat.category} delay={catIndex * 0.1}>
+                    <FadeIn key={cat.category} staggerIndex={catIndex}>
                       <div className="group">
                         <div className="flex items-center gap-3 mb-5">
                           <span className={`${isDarkMode ? 'text-amber-500' : 'text-amber-600'}`}>
@@ -1130,9 +1202,8 @@ export default function Home() {
                             <motion.span 
                               key={skill}
                               initial={{ opacity: 0, scale: 0.9 }}
-                              whileInView={{ opacity: 1, scale: 1 }}
-                              viewport={{ once: false, amount: 0.5 }}
-                              transition={{ delay: catIndex * 0.05 + i * 0.02 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: i * 0.03, duration: 0.3 }}
                               className={`px-3 py-1.5 ${colors.cardBg} ${colors.textMuted} text-sm rounded border ${colors.border} hover:border-amber-600/30 hover:text-amber-600 transition-colors cursor-default`}
                             >
                               {skill}
@@ -1164,7 +1235,7 @@ export default function Home() {
               <div className="lg:col-span-8">
                 <div className="space-y-12">
                   {siteConfig.experience.map((exp, i) => (
-                    <FadeIn key={exp.company} delay={i * 0.1}>
+                    <FadeIn key={exp.company} staggerIndex={i}>
                       <div className={`relative pl-6 border-l-2 ${colors.border} hover:border-amber-600/50 transition-colors`}>
                         <div className="absolute -left-[5px] top-0 w-2 h-2 bg-amber-600 rounded-full" />
                         
@@ -1185,7 +1256,7 @@ export default function Home() {
                   
                   <div className="space-y-8">
                     {siteConfig.education.map((edu, i) => (
-                      <FadeIn key={edu.institution} delay={i * 0.1}>
+                      <FadeIn key={edu.institution} staggerIndex={i}>
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                           <div>
                             <h4 className="font-medium">{edu.degree}</h4>
@@ -1246,7 +1317,7 @@ export default function Home() {
                 </p>
               </FadeIn>
               
-              <FadeIn delay={0.2}>
+              <FadeIn staggerIndex={1}>
                 <MagneticButton className="inline-block">
                   <a 
                     href={`mailto:${siteConfig.socials.email}`}
@@ -1260,7 +1331,7 @@ export default function Home() {
                 </MagneticButton>
               </FadeIn>
               
-              <FadeIn delay={0.3}>
+              <FadeIn staggerIndex={2}>
                 <div className="flex justify-center gap-8 mt-12">
                   <MagneticButton>
                     <a 

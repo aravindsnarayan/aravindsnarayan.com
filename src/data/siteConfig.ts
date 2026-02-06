@@ -53,7 +53,7 @@ export const siteConfig = {
   // Stats Section
   stats: [
     { value: "5+", label: "Years Experience", icon: "calendar" },
-    { value: "50+", label: "Projects Completed", icon: "folder" },
+    { value: "20+", label: "Projects Completed", icon: "folder" },
     { value: "99.9%", label: "Uptime Delivered", icon: "check" },
     { value: "24/7", label: "Support Available", icon: "clock" },
   ],
