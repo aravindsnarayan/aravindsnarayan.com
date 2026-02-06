@@ -27,6 +27,7 @@ export const siteConfig = {
     { name: "Home", href: "#home" },
     { name: "About", href: "#about" },
     { name: "Skills", href: "#skills" },
+    { name: "Experience", href: "#experience" },
     { name: "Projects", href: "#projects" },
     { name: "Contact", href: "#contact" },
   ],
@@ -75,71 +76,67 @@ export const siteConfig = {
 
   // Skills Section
   skills: {
-    languages: ["JavaScript", "TypeScript", "Python", "Go", "Rust"],
-    frontend: ["React", "Next.js", "Vue.js", "Tailwind CSS", "HTML5/CSS3"],
-    backend: ["Node.js", "Express", "FastAPI", "GraphQL", "REST APIs"],
-    databases: ["PostgreSQL", "MongoDB", "Redis", "Elasticsearch"],
-    cloud: ["AWS", "GCP", "Docker", "Kubernetes", "Terraform"],
-    tools: ["Git", "GitHub Actions", "Jenkins", "VS Code", "Figma"],
+    languages: ["Python", "Bash", "Go", "YAML", "HCL"],
+    cloud: ["AWS", "GCP", "Azure", "DigitalOcean"],
+    containers: ["Docker", "Kubernetes", "Helm", "Podman"],
+    iac: ["Terraform", "Ansible", "Pulumi", "CloudFormation"],
+    cicd: ["GitHub Actions", "GitLab CI", "Jenkins", "ArgoCD"],
+    monitoring: ["Prometheus", "Grafana", "ELK Stack", "Datadog"],
   },
 
   // Skill Categories for Terminal Display
   skillCategories: [
     {
-      category: "Frontend",
-      icon: "🎨",
-      skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Redux"],
+      category: "Cloud Platforms",
+      icon: "☁️",
+      skills: ["AWS", "GCP", "Azure", "DigitalOcean", "Cloudflare"],
     },
     {
-      category: "Backend",
-      icon: "⚙️",
-      skills: ["Node.js", "Python", "Go", "GraphQL", "REST APIs"],
+      category: "Containers & Orchestration",
+      icon: "🐳",
+      skills: ["Docker", "Kubernetes", "Helm", "Docker Compose", "Podman"],
     },
     {
-      category: "Database",
-      icon: "🗄️",
-      skills: ["PostgreSQL", "MongoDB", "Redis", "Prisma"],
+      category: "Infrastructure as Code",
+      icon: "📝",
+      skills: ["Terraform", "Ansible", "Pulumi", "CloudFormation", "Vagrant"],
     },
     {
-      category: "DevOps",
-      icon: "🚀",
-      skills: ["Docker", "Kubernetes", "AWS", "CI/CD", "Terraform"],
+      category: "CI/CD & GitOps",
+      icon: "🔄",
+      skills: ["GitHub Actions", "GitLab CI", "Jenkins", "ArgoCD", "FluxCD"],
     },
     {
-      category: "Tools",
-      icon: "🔧",
-      skills: ["Git", "GitHub", "VS Code", "Figma", "Postman"],
+      category: "Monitoring & Observability",
+      icon: "📊",
+      skills: ["Prometheus", "Grafana", "ELK Stack", "Datadog", "PagerDuty"],
+    },
+    {
+      category: "Security & Networking",
+      icon: "🔒",
+      skills: ["Vault", "Nginx", "Traefik", "Istio", "Trivy"],
     },
   ],
 
   // Projects Section
   projects: [
     {
-      title: "E-Commerce Platform",
+      title: "AdaQuiz",
       description:
-        "A full-featured e-commerce platform with real-time inventory, payment processing, and admin dashboard.",
-      tags: ["Next.js", "Node.js", "PostgreSQL", "Stripe"],
-      github: "https://github.com/aravindsnarayan/ecommerce",
-      demo: "https://demo.aravindsnarayan.com/ecommerce",
-      image: "/projects/ecommerce.png",
+        "A modern quiz platform for educators and learners. Released and continuously improving with new features.",
+      tags: ["Next.js 16", "React 19", "Supabase", "OpenAI", "Redis", "Vercel"],
+      github: "", // Closed source
+      demo: "https://adaquiz.online",
+      image: "/projects/adaquiz.png",
     },
     {
-      title: "DevOps Dashboard",
+      title: "Project Ohara",
       description:
-        "Real-time monitoring dashboard for infrastructure metrics, deployments, and system health.",
-      tags: ["React", "Go", "Prometheus", "Grafana"],
-      github: "https://github.com/aravindsnarayan/devops-dashboard",
-      demo: "https://demo.aravindsnarayan.com/dashboard",
-      image: "/projects/dashboard.png",
-    },
-    {
-      title: "AI Chat Assistant",
-      description:
-        "Intelligent chatbot powered by LLMs with context awareness and multi-turn conversations.",
-      tags: ["Python", "FastAPI", "OpenAI", "Redis"],
-      github: "https://github.com/aravindsnarayan/ai-chat",
-      demo: "https://demo.aravindsnarayan.com/chat",
-      image: "/projects/chat.png",
+        "A full-featured web application for AI-powered deep research, based on the Lutum Veritas engine. Conducts comprehensive multi-source research with intelligent synthesis, producing detailed reports with proper citations.",
+      tags: ["React 19", "FastAPI", "PostgreSQL", "OAuth2", "Camoufox"],
+      github: "https://github.com/aravindsnarayan/ProjectOhara",
+      demo: "",
+      image: "/projects/ohara.png",
     },
   ],
 
@@ -168,22 +165,24 @@ export const siteConfig = {
   // Experience/Work History
   experience: [
     {
-      title: "Senior Software Engineer",
-      company: "Tech Company",
-      period: "2022 - Present",
-      description: "Leading development of cloud-native applications",
+      title: "Senior DevOps Engineer",
+      company: "PIT Solutions Ltd",
+      period: "Dec 2020 - Present",
+      description: "Leading DevOps initiatives, CI/CD pipelines, and cloud infrastructure",
+    },
+  ],
+
+  // Education
+  education: [
+    {
+      degree: "B.Tech in Electrical and Electronics Engineering",
+      institution: "College of Engineering Trivandrum",
+      period: "2015 - 2019",
     },
     {
-      title: "Full Stack Developer",
-      company: "Startup Inc",
-      period: "2020 - 2022",
-      description: "Built and scaled multiple web applications",
-    },
-    {
-      title: "Software Developer",
-      company: "Digital Agency",
-      period: "2019 - 2020",
-      description: "Developed client websites and web applications",
+      degree: "+2 Computer Science",
+      institution: "Kendriya Vidyalaya Pattom",
+      period: "2014",
     },
   ],
 
